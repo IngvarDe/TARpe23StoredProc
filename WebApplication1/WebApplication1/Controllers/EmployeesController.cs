@@ -3,6 +3,8 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using StoredProc.Data;
 using StoredProc.Models;
+using System.Data;
+using System.Text;
 
 
 namespace StoredProc.Controllers
@@ -64,40 +66,46 @@ namespace StoredProc.Controllers
         }
 
         [HttpPost]
-        public IActionResult DynamicSQL(string firstName, string lastName, string gender, int salary)
+        public IActionResult DynamicSql(string firstName, string lastname, string gender, int salary)
         {
-            string connectionStr = _config.GetConnectionString("DefaultConnection");
+            string conntectionStr = _config.GetConnectionString("DefaultConnection");
 
-            using (SqlConnection con = new SqlConnection(connectionStr))
+            using (SqlConnection con = new SqlConnection(conntectionStr))
             {
                 SqlCommand cmd = new SqlCommand();
                 cmd.Connection = con;
-                cmd.CommandText = "dbo.spSearchEmployees";
-                cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                StringBuilder sbCommand = new StringBuilder("Select * from Employees where 1 = 1");
 
-                if(firstName != null)
+                if (firstName != null)
                 {
-                    SqlParameter param_fn = new SqlParameter("@FirstName", firstName);
-                    cmd.Parameters.Add(param_fn);
+                    sbCommand.Append(" AND FirstName=@FirstName");
+                    SqlParameter param = new
+                    SqlParameter("@FirstName", firstName);
+                    cmd.Parameters.Add(param);
                 }
-
-                if (lastName != null)
+                if (lastname != null)
                 {
-                    SqlParameter param_ln = new SqlParameter("@LastName", lastName);
-                    cmd.Parameters.Add(param_ln);
+                    sbCommand.Append(" AND LastName=@LastName");
+                    SqlParameter param = new
+                    SqlParameter("@LastName", lastname);
+                    cmd.Parameters.Add(param);
                 }
-
                 if (gender != null)
                 {
-                    SqlParameter param_g = new SqlParameter("@Gender", gender);
-                    cmd.Parameters.Add(param_g);
+                    sbCommand.Append(" AND Gender=@Gender");
+                    SqlParameter param = new
+                    SqlParameter("@Gender", gender);
+                    cmd.Parameters.Add(param);
                 }
-
-                if (salary != null)
+                if (salary != 0)
                 {
-                    SqlParameter param_s = new SqlParameter("@Salary", salary);
-                    cmd.Parameters.Add(param_s);
+                    sbCommand.Append(" AND Salary=@Salary");
+                    SqlParameter param = new
+                    SqlParameter("@Salary", salary);
+                    cmd.Parameters.Add(param);
                 }
+                cmd.CommandText = sbCommand.ToString();
+                cmd.CommandType = CommandType.Text;
                 con.Open();
                 SqlDataReader sdr = cmd.ExecuteReader();
                 List<Employee> model = new List<Employee>();
@@ -110,10 +118,9 @@ namespace StoredProc.Controllers
                     details.Salary = Convert.ToInt32(sdr["Salary"]);
                     model.Add(details);
                 }
+
                 return View(model);
             }
-
-            return View();
         }
     }
 }
