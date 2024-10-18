@@ -66,16 +66,51 @@ namespace StoredProc.Controllers
         [HttpPost]
         public IActionResult DynamicSQL(string firstName, string lastName, string gender, int salary)
         {
-            //string connection
+            string connectionStr = _config.GetConnectionString("DefaultConnection");
 
-            //using (SqlConnection con = new SqlConnection(connectionStr))
+            using (SqlConnection con = new SqlConnection(connectionStr))
             {
-                // siia sqlcommand
+                SqlCommand cmd = new SqlCommand();
+                cmd.Connection = con;
+                cmd.CommandText = "dbo.spSearchEmployees";
+                cmd.CommandType = System.Data.CommandType.StoredProcedure;
 
-                //if(firstName != null)
+                if(firstName != null)
                 {
-                    //siia midagi lisada
+                    SqlParameter param_fn = new SqlParameter("@FirstName", firstName);
+                    cmd.Parameters.Add(param_fn);
                 }
+
+                if (lastName != null)
+                {
+                    SqlParameter param_ln = new SqlParameter("@LastName", lastName);
+                    cmd.Parameters.Add(param_ln);
+                }
+
+                if (gender != null)
+                {
+                    SqlParameter param_g = new SqlParameter("@Gender", gender);
+                    cmd.Parameters.Add(param_g);
+                }
+
+                if (salary != null)
+                {
+                    SqlParameter param_s = new SqlParameter("@Salary", salary);
+                    cmd.Parameters.Add(param_s);
+                }
+                con.Open();
+                SqlDataReader sdr = cmd.ExecuteReader();
+                List<Employee> model = new List<Employee>();
+                while (sdr.Read())
+                {
+                    var details = new Employee();
+                    details.FirstName = sdr["FirstName"].ToString();
+                    details.LastName = sdr["LastName"].ToString();
+                    details.Gender = sdr["Gender"].ToString();
+                    details.Salary = Convert.ToInt32(sdr["Salary"]);
+                    model.Add(details);
+                }
+                return View(model);
             }
 
             return View();
